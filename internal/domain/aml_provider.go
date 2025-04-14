@@ -7,6 +7,8 @@ import (
 	"net/http"
 	"os"
 	"time"
+
+	"go.uber.org/zap"
 )
 
 // AMLService defines the interface for AML checking services
@@ -50,19 +52,22 @@ func (m *MockAMLService) CheckTransaction(fromAddress, toAddress string, amount 
 	}, nil
 }
 
-type AMLProvider struct {
+type ChainabuseProvider struct {
 	client  *http.Client
 	apiKey  string
 	baseURL string
+	logger  *zap.Logger
 }
 
-func NewAMLProvider() *AMLProvider {
-	return &AMLProvider{
+func NewChainabuseProvider() *ChainabuseProvider {
+	logger, _ := zap.NewProduction()
+	return &ChainabuseProvider{
 		client: &http.Client{
 			Timeout: 10 * time.Second,
 		},
 		apiKey:  os.Getenv("AML_API_KEY"),
 		baseURL: "https://api.aml-provider.com",
+		logger:  logger,
 	}
 }
 
@@ -80,7 +85,7 @@ type TransactionResponse struct {
 	Details       []string `json:"details"`
 }
 
-func (p *AMLProvider) CheckAddress(ctx context.Context, address string) (*AMLResult, error) {
+func (p *ChainabuseProvider) CheckAddress(ctx context.Context, address string) (*AMLResult, error) {
 	if address == "" {
 		return nil, ErrEmptyAddress
 	}
@@ -98,7 +103,11 @@ func (p *AMLProvider) CheckAddress(ctx context.Context, address string) (*AMLRes
 	if err != nil {
 		return nil, fmt.Errorf("failed to send request: %w", err)
 	}
-	defer resp.Body.Close()
+	defer func() {
+		if err := resp.Body.Close(); err != nil {
+			p.logger.Error("failed to close response body", zap.Error(err))
+		}
+	}()
 
 	if resp.StatusCode != http.StatusOK {
 		return nil, fmt.Errorf("API request failed with status: %d", resp.StatusCode)
@@ -116,7 +125,7 @@ func (p *AMLProvider) CheckAddress(ctx context.Context, address string) (*AMLRes
 	}, nil
 }
 
-func (p *AMLProvider) CheckTransaction(ctx context.Context, txHash string) (*TransactionResult, error) {
+func (p *ChainabuseProvider) CheckTransaction(ctx context.Context, txHash string) (*TransactionResult, error) {
 	if txHash == "" {
 		return nil, fmt.Errorf("transaction hash cannot be empty")
 	}
@@ -134,7 +143,11 @@ func (p *AMLProvider) CheckTransaction(ctx context.Context, txHash string) (*Tra
 	if err != nil {
 		return nil, fmt.Errorf("failed to send request: %w", err)
 	}
-	defer resp.Body.Close()
+	defer func() {
+		if err := resp.Body.Close(); err != nil {
+			p.logger.Error("failed to close response body", zap.Error(err))
+		}
+	}()
 
 	if resp.StatusCode != http.StatusOK {
 		return nil, fmt.Errorf("API request failed with status: %d", resp.StatusCode)

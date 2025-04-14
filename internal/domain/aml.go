@@ -24,57 +24,54 @@ type TransactionResult struct {
 	Details       []string
 }
 
-// AMLService defines the interface for AML checking services
-type AMLService interface {
-	// CheckAddress checks if a given address is suspicious
-	CheckAddress(address string) (*CheckResult, error)
-	// CheckTransaction checks if a transaction is suspicious
-	CheckTransaction(fromAddress, toAddress string, amount float64) (*CheckResult, error)
-}
-
-// CheckResult represents the result of an AML check
-type CheckResult struct {
-	IsSuspicious bool
-	RiskScore    float64
-	Details      string
-}
-
-// MockAMLService is a mock implementation of AMLService for testing
-type MockAMLService struct{}
-
-// NewMockAMLService creates a new instance of MockAMLService
-func NewMockAMLService() *MockAMLService {
-	return &MockAMLService{}
-}
-
-// CheckAddress implements AMLService interface
-func (m *MockAMLService) CheckAddress(address string) (*CheckResult, error) {
-	return &CheckResult{
-		IsSuspicious: false,
-		RiskScore:    0.1,
-		Details:      "Address appears to be clean",
-	}, nil
-}
-
-// CheckTransaction implements AMLService interface
-func (m *MockAMLService) CheckTransaction(fromAddress, toAddress string, amount float64) (*CheckResult, error) {
-	return &CheckResult{
-		IsSuspicious: false,
-		RiskScore:    0.2,
-		Details:      "Transaction appears to be clean",
-	}, nil
-}
-
+// FormatAMLResult formats an AMLResult into a human-readable string
 func FormatAMLResult(result *AMLResult) string {
-	return fmt.Sprintf("Address %s checked against AML databases:\nRisk Score: %.2f\n- %s",
+	if result == nil {
+		return "No result available"
+	}
+
+	status := "✅ Clean"
+	if result.IsSuspicious {
+		status = "⚠️ Suspicious"
+	}
+
+	return fmt.Sprintf(
+		"Address: %s\nStatus: %s\nRisk Score: %.2f\nDetails:\n%s",
 		result.Address,
+		status,
 		result.RiskScore,
-		result.Details[0])
+		formatDetails(result.Details),
+	)
 }
 
+// FormatTransactionResult formats a TransactionResult into a human-readable string
 func FormatTransactionResult(result *TransactionResult) string {
-	return fmt.Sprintf("Transaction %s checked against AML databases:\nRisk Score: %.2f\n- %s",
+	if result == nil {
+		return "No result available"
+	}
+
+	status := "✅ Clean"
+	if result.IsSuspicious {
+		status = "⚠️ Suspicious"
+	}
+
+	return fmt.Sprintf(
+		"Transaction: %s\nStatus: %s\nRisk Score: %.2f\nDetails:\n%s",
 		result.TransactionID,
+		status,
 		result.RiskScore,
-		result.Details[0])
+		formatDetails(result.Details),
+	)
+}
+
+func formatDetails(details []string) string {
+	if len(details) == 0 {
+		return "  - No details available"
+	}
+
+	var formatted string
+	for _, detail := range details {
+		formatted += fmt.Sprintf("  - %s\n", detail)
+	}
+	return formatted
 }
