@@ -1,0 +1,10 @@
+telegram:
+  token: ${TELEGRAM_BOT_TOKEN}
+
+aml:
+  api_key: ${AML_API_KEY}
+  base_url: https://api.aml-provider.com
+
+logging:
+  level: info
+  file: bot.log 

@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"io"
 	"net/http"
 	"os"
 	"time"
@@ -71,37 +72,22 @@ func NewChainabuseProvider() *ChainabuseProvider {
 	}
 }
 
-type AMLResponse struct {
-	Address      string   `json:"address"`
-	IsSuspicious bool     `json:"is_suspicious"`
-	RiskScore    float64  `json:"risk_score"`
-	Details      []string `json:"details"`
+func (p *ChainabuseProvider) SetAPIKey(apiKey string) {
+	p.apiKey = apiKey
 }
 
-type TransactionResponse struct {
-	TransactionID string   `json:"transaction_id"`
-	IsSuspicious  bool     `json:"is_suspicious"`
-	RiskScore     float64  `json:"risk_score"`
-	Details       []string `json:"details"`
+func (p *ChainabuseProvider) SetBaseURL(baseURL string) {
+	p.baseURL = baseURL
 }
 
-func (p *ChainabuseProvider) CheckAddress(ctx context.Context, address string) (*AMLResult, error) {
+func (p *ChainabuseProvider) CheckAddress(ctx context.Context, address string) (*CheckResult, error) {
 	if address == "" {
 		return nil, ErrEmptyAddress
 	}
 
-	req, err := http.NewRequestWithContext(ctx, "GET",
-		fmt.Sprintf("%s/check/address/%s", p.baseURL, address), nil)
+	resp, err := p.client.Get(fmt.Sprintf("%s/address/%s", p.baseURL, address))
 	if err != nil {
-		return nil, fmt.Errorf("failed to create request: %w", err)
-	}
-
-	req.Header.Set("Authorization", "Bearer "+p.apiKey)
-	req.Header.Set("Content-Type", "application/json")
-
-	resp, err := p.client.Do(req)
-	if err != nil {
-		return nil, fmt.Errorf("failed to send request: %w", err)
+		return nil, fmt.Errorf("failed to check address: %w", err)
 	}
 	defer func() {
 		if err := resp.Body.Close(); err != nil {
@@ -110,38 +96,38 @@ func (p *ChainabuseProvider) CheckAddress(ctx context.Context, address string) (
 	}()
 
 	if resp.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("API request failed with status: %d", resp.StatusCode)
+		return nil, fmt.Errorf("unexpected status code: %d", resp.StatusCode)
 	}
 
-	var apiResp AMLResponse
-	if err := json.NewDecoder(resp.Body).Decode(&apiResp); err != nil {
-		return nil, fmt.Errorf("failed to decode response: %w", err)
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return nil, fmt.Errorf("failed to read response body: %w", err)
 	}
 
-	return &AMLResult{
-		Address:      apiResp.Address,
-		IsSuspicious: apiResp.IsSuspicious,
-		Details:      apiResp.Details,
+	var result struct {
+		IsSuspicious bool    `json:"is_suspicious"`
+		RiskScore    float64 `json:"risk_score"`
+		Details      string  `json:"details"`
+	}
+	if err := json.Unmarshal(body, &result); err != nil {
+		return nil, fmt.Errorf("failed to parse response: %w", err)
+	}
+
+	return &CheckResult{
+		IsSuspicious: result.IsSuspicious,
+		RiskScore:    result.RiskScore,
+		Details:      result.Details,
 	}, nil
 }
 
-func (p *ChainabuseProvider) CheckTransaction(ctx context.Context, txHash string) (*TransactionResult, error) {
+func (p *ChainabuseProvider) CheckTransaction(ctx context.Context, txHash string) (*CheckResult, error) {
 	if txHash == "" {
-		return nil, fmt.Errorf("transaction hash cannot be empty")
+		return nil, ErrEmptyTransaction
 	}
 
-	req, err := http.NewRequestWithContext(ctx, "GET",
-		fmt.Sprintf("%s/check/transaction/%s", p.baseURL, txHash), nil)
+	resp, err := p.client.Get(fmt.Sprintf("%s/transaction/%s", p.baseURL, txHash))
 	if err != nil {
-		return nil, fmt.Errorf("failed to create request: %w", err)
-	}
-
-	req.Header.Set("Authorization", "Bearer "+p.apiKey)
-	req.Header.Set("Content-Type", "application/json")
-
-	resp, err := p.client.Do(req)
-	if err != nil {
-		return nil, fmt.Errorf("failed to send request: %w", err)
+		return nil, fmt.Errorf("failed to check transaction: %w", err)
 	}
 	defer func() {
 		if err := resp.Body.Close(); err != nil {
@@ -150,17 +136,26 @@ func (p *ChainabuseProvider) CheckTransaction(ctx context.Context, txHash string
 	}()
 
 	if resp.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("API request failed with status: %d", resp.StatusCode)
+		return nil, fmt.Errorf("unexpected status code: %d", resp.StatusCode)
 	}
 
-	var apiResp TransactionResponse
-	if err := json.NewDecoder(resp.Body).Decode(&apiResp); err != nil {
-		return nil, fmt.Errorf("failed to decode response: %w", err)
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return nil, fmt.Errorf("failed to read response body: %w", err)
 	}
 
-	return &TransactionResult{
-		TransactionID: apiResp.TransactionID,
-		IsSuspicious:  apiResp.IsSuspicious,
-		Details:       apiResp.Details,
+	var result struct {
+		IsSuspicious bool    `json:"is_suspicious"`
+		RiskScore    float64 `json:"risk_score"`
+		Details      string  `json:"details"`
+	}
+	if err := json.Unmarshal(body, &result); err != nil {
+		return nil, fmt.Errorf("failed to parse response: %w", err)
+	}
+
+	return &CheckResult{
+		IsSuspicious: result.IsSuspicious,
+		RiskScore:    result.RiskScore,
+		Details:      result.Details,
 	}, nil
 }
