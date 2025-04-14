@@ -1,0 +1,13 @@
+welcome_message: |
+  Welcome to AML Checker Bot!
+
+  Available commands:
+  /check <address> - Check an address
+  /checktx <from> <to> <amount> - Check a transaction
+
+check_usage: Please provide an address to check
+check_tx_usage: Please provide from address, to address, and amount
+unknown_command: Unknown command. Type /start to see available commands
+address_checked: "Address %s checked against AML databases:\n- No suspicious activity found"
+error_checking: "Error checking address: %s"
+language_selection: "Select language:" 
