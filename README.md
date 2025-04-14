@@ -1,58 +1,132 @@
-# Telegram AML Checker Bot
+# Telegram AML Bot
 
-A Telegram bot for checking addresses and transactions against AML (Anti-Money Laundering) databases.
+A Telegram bot for checking cryptocurrency addresses and transactions against AML (Anti-Money Laundering) databases.
 
 ## Features
 
-- Check addresses for suspicious activity
-- Check transactions for suspicious activity
-- Real-time AML risk assessment
-- User-friendly Telegram interface
+- Check cryptocurrency addresses for suspicious activity
+- Check transaction hashes for AML compliance
+- Real-time results with risk scores
+- Detailed reporting of suspicious activities
+- Docker support for easy deployment
 
-## Commands
+## Prerequisites
 
-- `/start` - Show welcome message and available commands
-- `/check <address>` - Check an address for suspicious activity
-- `/checktx <tx_hash>` - Check a transaction for suspicious activity
+- Go 1.21 or later
+- Docker and Docker Compose
+- Telegram Bot Token (from [@BotFather](https://t.me/BotFather))
+- AML Provider API Key
 
-## Architecture
+## Quick Start
 
-The project follows a clean architecture with the following components:
+1. Clone the repository:
+```bash
+git clone https://github.com/clevertechru/tgbot_aml.git
+cd tgbot_aml
+```
 
-- `domain/` - Core business logic and interfaces
-  - `aml.go` - AML domain models and interfaces
-  - `aml_provider.go` - AML service interface and mock implementation
-- `service/` - Business logic implementation
-  - `aml.go` - AML service implementation
-- `handler/` - HTTP/Telegram handlers
-  - `telegram.go` - Telegram bot message handling
-- `cmd/bot/` - Application entry point
+2. Create and configure `.env` file:
+```bash
+cp .env.example .env
+# Edit .env with your actual API keys
+```
 
-## Setup
+3. Build and run with Docker:
+```bash
+docker compose up --build
+```
 
-1. Clone the repository
-2. Set up environment variables:
-   ```bash
-   export TELEGRAM_BOT_TOKEN=your_bot_token
-   export AML_API_KEY=your_aml_api_key  # Optional, only needed for real AML provider
-   ```
-3. Run the bot:
-   ```bash
-   go run cmd/bot/main.go
-   ```
+## Configuration
+
+### Environment Variables
+
+Create a `.env` file with the following variables:
+
+```env
+# Required
+TELEGRAM_BOT_TOKEN=your_bot_token_here
+AML_API_KEY=your_api_key_here
+
+# Optional
+AML_BASE_URL=https://api.aml-provider.com
+```
+
+### Bot Commands
+
+- `/start` - Start the bot and get welcome message
+- `/check <address>` - Check a cryptocurrency address
+- `/check <tx_hash>` - Check a transaction hash
 
 ## Development
 
-The project uses a mock AML service by default. To implement a real AML provider:
+### Local Development
 
-1. Create a new provider implementing the `domain.AMLService` interface
-2. Update the service initialization in `cmd/bot/main.go`
+1. Install dependencies:
+```bash
+go mod download
+```
 
-## Testing
+2. Run the bot:
+```bash
+go run cmd/bot/main.go
+```
 
-Run tests with:
+### Building
+
+```bash
+# Build binary
+go build -o bot ./cmd/bot
+
+# Build Docker image
+docker build -t tgbot_aml .
+```
+
+### Testing
+
 ```bash
 go test ./...
+```
+
+## Docker Deployment
+
+### Production
+
+1. Update `.env` with production credentials
+2. Run in detached mode:
+```bash
+docker compose up -d
+```
+
+### Development
+
+Run with logs:
+```bash
+docker compose up --build
+```
+
+### Logs
+
+View logs:
+```bash
+docker compose logs -f
+```
+
+## Project Structure
+
+```
+.
+├── cmd/
+│   └── bot/           # Main application entry point
+├── internal/
+│   ├── config/        # Configuration management
+│   ├── domain/        # Core domain models and interfaces
+│   ├── handlers/      # Telegram bot handlers
+│   └── services/      # Business logic services
+├── config/            # Configuration files
+├── logs/             # Application logs
+├── Dockerfile        # Docker build configuration
+├── docker-compose.yml # Docker Compose configuration
+└── .env              # Environment variables
 ```
 
 ## Contributing
@@ -65,4 +139,4 @@ go test ./...
 
 ## License
 
-MIT License 
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details. 

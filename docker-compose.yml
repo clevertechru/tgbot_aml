@@ -1,0 +1,19 @@
+version: '3.8'
+
+services:
+  bot:
+    build: .
+    container_name: tgbot_aml
+    environment:
+      - TELEGRAM_BOT_TOKEN=${TELEGRAM_BOT_TOKEN}
+      - AML_API_KEY=${AML_API_KEY}
+    volumes:
+      - ./logs:/app/logs
+      - ./config:/app/config
+    restart: "no"  # Temporarily disable auto-restart for debugging
+    tty: true     # Allocate a pseudo-TTY
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3" 

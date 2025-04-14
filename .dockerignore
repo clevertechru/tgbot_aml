@@ -1,0 +1,29 @@
+# Git
+.git
+.gitignore
+
+# Logs
+logs/
+*.log
+
+# Environment variables
+.env
+
+# IDE specific files
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# Build files
+bin/
+vendor/
+
+# Docker
+Dockerfile
+docker-compose.yml
+.dockerignore
+
+# Misc
+README.md
+LICENSE 

@@ -23,6 +23,14 @@ func main() {
 		cfg = config.DefaultConfig()
 	}
 
+	// Validate required environment variables
+	if cfg.Telegram.Token == "" {
+		log.Fatal("TELEGRAM_BOT_TOKEN is required but not set")
+	}
+	if cfg.AML.APIKey == "" {
+		log.Fatal("AML_API_KEY is required but not set")
+	}
+
 	// Initialize logger
 	var logger *zap.Logger
 	if cfg.Logging.File != "" {
