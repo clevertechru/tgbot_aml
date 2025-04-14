@@ -4,53 +4,73 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"runtime"
 
 	"gopkg.in/yaml.v3"
 )
 
-// Translations holds all translation strings
-type Translations struct {
-	WelcomeMessage    string `yaml:"welcome_message"`
-	CheckUsage        string `yaml:"check_usage"`
-	CheckTxUsage      string `yaml:"check_tx_usage"`
-	UnknownCommand    string `yaml:"unknown_command"`
-	AddressChecked    string `yaml:"address_checked"`
-	ErrorChecking     string `yaml:"error_checking"`
-	LanguageSelection string `yaml:"language_selection"`
-}
+type Language string
 
-var translations *Translations
+const (
+	English Language = "en"
+	Russian Language = "ru"
+)
+
+var (
+	translations    = make(map[Language]map[string]string)
+	translationsDir string
+)
 
 func init() {
-	translations = loadTranslations("en")
+	_, filename, _, _ := runtime.Caller(0)
+	translationsDir = filepath.Join(filepath.Dir(filename), "translations")
+	loadTranslations()
 }
 
-// GetTranslations returns the loaded translations
-func GetTranslations() *Translations {
-	return translations
-}
-
-func loadTranslations(lang string) *Translations {
-	filename := filepath.Join("internal", "lang", "translations", fmt.Sprintf("%s.yml", lang))
-	data, err := os.ReadFile(filename)
+func loadTranslations() {
+	// Load English translations
+	enPath := filepath.Join(translationsDir, "en.yml")
+	enTranslations, err := loadYAMLFile(enPath)
 	if err != nil {
-		panic(fmt.Sprintf("Failed to load %s translations: %v", lang, err))
+		panic(fmt.Sprintf("Failed to load English translations: %v", err))
 	}
+	translations[English] = enTranslations
 
-	var t Translations
-	if err := yaml.Unmarshal(data, &t); err != nil {
-		panic(fmt.Sprintf("Failed to parse %s translations: %v", lang, err))
+	// Load Russian translations
+	ruPath := filepath.Join(translationsDir, "ru.yml")
+	ruTranslations, err := loadYAMLFile(ruPath)
+	if err != nil {
+		panic(fmt.Sprintf("Failed to load Russian translations: %v", err))
 	}
-
-	return &t
+	translations[Russian] = ruTranslations
 }
 
-// FormatAddressChecked formats the address checked message
-func FormatAddressChecked(address string) string {
-	return fmt.Sprintf(translations.AddressChecked, address)
+func loadYAMLFile(path string) (map[string]string, error) {
+	data, err := os.ReadFile(path)
+	if err != nil {
+		return nil, err
+	}
+
+	var translations map[string]string
+	if err := yaml.Unmarshal(data, &translations); err != nil {
+		return nil, err
+	}
+
+	return translations, nil
 }
 
-// FormatErrorChecking formats the error checking message
-func FormatErrorChecking(err string) string {
-	return fmt.Sprintf(translations.ErrorChecking, err)
+func Get(lang Language, key string, args ...interface{}) string {
+	if lang == "" {
+		lang = English // default to English
+	}
+
+	msg, ok := translations[lang][key]
+	if !ok {
+		msg = translations[English][key] // fallback to English
+	}
+
+	if len(args) > 0 {
+		return fmt.Sprintf(msg, args...)
+	}
+	return msg
 }

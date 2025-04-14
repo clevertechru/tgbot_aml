@@ -2,9 +2,8 @@ package handlers
 
 import (
 	"context"
-	"fmt"
 
-	"github.com/clevertechru/tgbot_aml/internal/domain"
+	"github.com/clevertechru/tgbot_aml/internal/lang"
 	"github.com/clevertechru/tgbot_aml/internal/services"
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
 	"go.uber.org/zap"
@@ -29,26 +28,31 @@ func (h *Handler) HandleMessage(ctx context.Context, msg *tgbotapi.Message) erro
 		return nil
 	}
 
+	userLang := lang.English
+	if msg.From != nil && msg.From.LanguageCode == "ru" {
+		userLang = lang.Russian
+	}
+
 	switch msg.Command() {
 	case "start":
-		return h.handleStart(msg)
+		return h.handleStart(msg, userLang)
 	case "check":
-		return h.handleCheck(ctx, msg)
+		return h.handleCheck(ctx, msg, userLang)
 	default:
-		return h.handleUnknownCommand(msg)
+		return h.handleUnknownCommand(msg, userLang)
 	}
 }
 
-func (h *Handler) handleStart(msg *tgbotapi.Message) error {
-	reply := "Welcome to AML Bot! Use /check <address> to check an address or transaction."
+func (h *Handler) handleStart(msg *tgbotapi.Message, userLang lang.Language) error {
+	reply := lang.Get(userLang, "welcome")
 	response := tgbotapi.NewMessage(msg.Chat.ID, reply)
 	_, err := h.bot.Send(response)
 	return err
 }
 
-func (h *Handler) handleCheck(ctx context.Context, msg *tgbotapi.Message) error {
+func (h *Handler) handleCheck(ctx context.Context, msg *tgbotapi.Message, userLang lang.Language) error {
 	if len(msg.CommandArguments()) == 0 {
-		reply := "Please provide an address or transaction hash to check. Usage: /check <address>"
+		reply := lang.Get(userLang, "check_usage")
 		response := tgbotapi.NewMessage(msg.Chat.ID, reply)
 		_, err := h.bot.Send(response)
 		return err
@@ -61,20 +65,24 @@ func (h *Handler) handleCheck(ctx context.Context, msg *tgbotapi.Message) error 
 			zap.Error(err),
 			zap.String("address", target),
 		)
-		reply := fmt.Sprintf("Error checking address: %v", err)
+		reply := lang.Get(userLang, "error_checking", err)
 		response := tgbotapi.NewMessage(msg.Chat.ID, reply)
 		_, err := h.bot.Send(response)
 		return err
 	}
 
-	reply := domain.FormatAMLResult(result)
+	key := "result_clean"
+	if result.IsSuspicious {
+		key = "result_suspicious"
+	}
+	reply := lang.Get(userLang, key, result.RiskScore, result.Details)
 	response := tgbotapi.NewMessage(msg.Chat.ID, reply)
 	_, err = h.bot.Send(response)
 	return err
 }
 
-func (h *Handler) handleUnknownCommand(msg *tgbotapi.Message) error {
-	reply := "Unknown command. Use /start to see available commands."
+func (h *Handler) handleUnknownCommand(msg *tgbotapi.Message, userLang lang.Language) error {
+	reply := lang.Get(userLang, "unknown_command")
 	response := tgbotapi.NewMessage(msg.Chat.ID, reply)
 	_, err := h.bot.Send(response)
 	return err

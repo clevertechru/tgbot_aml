@@ -18,6 +18,7 @@ logs/
 # Build files
 bin/
 vendor/
+bot
 
 # Docker
 Dockerfile

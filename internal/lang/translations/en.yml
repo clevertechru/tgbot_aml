@@ -4,10 +4,9 @@ welcome_message: |
   Available commands:
   /check <address> - Check an address
   /checktx <from> <to> <amount> - Check a transaction
-
-check_usage: Please provide an address to check
-check_tx_usage: Please provide from address, to address, and amount
-unknown_command: Unknown command. Type /start to see available commands
-address_checked: "Address %s checked against AML databases:\n- No suspicious activity found"
-error_checking: "Error checking address: %s"
+check_usage: "Please provide an address or transaction hash to check. Usage: /check <address>"
+unknown_command: "Unknown command. Use /start to see available commands."
+error_checking: "Error checking address: %v"
+result_suspicious: "⚠️ Suspicious activity detected!\nRisk Score: %.2f\nDetails: %s"
+result_clean: "✅ Address appears to be clean\nRisk Score: %.2f\nDetails: %s"
 language_selection: "Select language:" 

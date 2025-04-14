@@ -27,32 +27,6 @@ type CheckResult struct {
 	Details      string
 }
 
-// MockAMLService is a mock implementation of AMLService for testing
-type MockAMLService struct{}
-
-// NewMockAMLService creates a new instance of MockAMLService
-func NewMockAMLService() *MockAMLService {
-	return &MockAMLService{}
-}
-
-// CheckAddress implements AMLService interface
-func (m *MockAMLService) CheckAddress(address string) (*CheckResult, error) {
-	return &CheckResult{
-		IsSuspicious: false,
-		RiskScore:    0.1,
-		Details:      "Address appears to be clean",
-	}, nil
-}
-
-// CheckTransaction implements AMLService interface
-func (m *MockAMLService) CheckTransaction(fromAddress, toAddress string, amount float64) (*CheckResult, error) {
-	return &CheckResult{
-		IsSuspicious: false,
-		RiskScore:    0.2,
-		Details:      "Transaction appears to be clean",
-	}, nil
-}
-
 type ChainabuseProvider struct {
 	client  *http.Client
 	apiKey  string
