@@ -26,6 +26,7 @@ RUN apk --no-cache add ca-certificates tzdata bash
 # Copy the binary from builder
 COPY --from=builder /app/bot .
 COPY --from=builder /app/config ./config
+COPY --from=builder /app/internal ./internal
 
 # Create volume for logs
 VOLUME ["/app/logs"]
@@ -37,6 +38,8 @@ echo "Starting bot..."
 echo "Current directory: $(pwd)"
 echo "Config directory contents:"
 ls -la /app/config
+echo "Lang directory contents:"
+ls -la /app/internal/lang/translations
 echo "Environment variables:"
 env | grep -E 'TELEGRAM|AML'
 echo "Running bot..."
