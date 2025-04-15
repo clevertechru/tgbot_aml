@@ -29,11 +29,22 @@ func (h *Handler) HandleMessage(ctx context.Context, msg *tgbotapi.Message) erro
 	}
 
 	userLang := lang.English
-	if msg.From != nil && msg.From.LanguageCode == "ru" {
-		userLang = lang.Russian
+	if msg.From != nil {
+		switch lang.Language(msg.From.LanguageCode) {
+		case lang.Russian:
+			userLang = lang.Russian
+		}
 	}
 
-	switch msg.Command() {
+	command := msg.Command()
+	h.logger.Info("Incoming command",
+		zap.String("command", command),
+		zap.String("args", msg.CommandArguments()),
+		zap.Int64("chat_id", msg.Chat.ID),
+		zap.String("username", msg.From.UserName),
+	)
+
+	switch command {
 	case "start":
 		return h.handleStart(msg, userLang)
 	case "check":

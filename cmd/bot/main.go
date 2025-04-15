@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"fmt"
 	"log"
 	"os"
 	"os/signal"
@@ -97,7 +98,7 @@ func main() {
 	signal.Notify(sigChan, syscall.SIGINT, syscall.SIGTERM)
 
 	// Start HTTP server
-	srv := server.New(":8080")
+	srv := server.New(fmt.Sprintf(":%d", cfg.Server.Port))
 	srv.SetBotConnected(true) // Bot is connected
 	srv.SetAMLConnected(true) // AML is connected
 

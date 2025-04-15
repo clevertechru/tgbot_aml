@@ -3,6 +3,8 @@ package config
 import (
 	"fmt"
 	"os"
+	"regexp"
+	"strings"
 
 	"gopkg.in/yaml.v3"
 )
@@ -19,6 +21,9 @@ type Config struct {
 		Level string `yaml:"level"`
 		File  string `yaml:"file"`
 	} `yaml:"logging"`
+	Server struct {
+		Port int `yaml:"port"`
+	} `yaml:"server"`
 }
 
 func Load(configPath string) (*Config, error) {
@@ -27,11 +32,19 @@ func Load(configPath string) (*Config, error) {
 		return nil, fmt.Errorf("failed to read config file: %w", err)
 	}
 
+	// Replace environment variables
+	re := regexp.MustCompile(`\${([^}]+)}`)
+	configStr := re.ReplaceAllStringFunc(string(data), func(match string) string {
+		envVar := strings.Trim(match, "${}")
+		return os.Getenv(envVar)
+	})
+
 	var cfg Config
-	if err := yaml.Unmarshal(data, &cfg); err != nil {
+	if err := yaml.Unmarshal([]byte(configStr), &cfg); err != nil {
 		return nil, fmt.Errorf("failed to parse config file: %w", err)
 	}
 
+	fmt.Printf("Server started on port %d\n", cfg.Server.Port)
 	return &cfg, nil
 }
 
@@ -55,6 +68,11 @@ func DefaultConfig() *Config {
 		}{
 			Level: "info",
 			File:  "bot.log",
+		},
+		Server: struct {
+			Port int `yaml:"port"`
+		}{
+			Port: 8080,
 		},
 	}
 }
