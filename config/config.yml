@@ -7,4 +7,7 @@ aml:
 
 logging:
   level: info
-  file: bot.log 
+#  file: logs/bot.log
+
+server:
+  port: 8080 

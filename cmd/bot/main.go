@@ -2,14 +2,17 @@ package main
 
 import (
 	"context"
+	"fmt"
 	"log"
 	"os"
 	"os/signal"
 	"syscall"
+	"time"
 
 	"github.com/clevertechru/tgbot_aml/internal/config"
 	"github.com/clevertechru/tgbot_aml/internal/domain"
 	"github.com/clevertechru/tgbot_aml/internal/handlers"
+	"github.com/clevertechru/tgbot_aml/internal/server"
 	"github.com/clevertechru/tgbot_aml/internal/services"
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
 	"go.uber.org/zap"
@@ -19,8 +22,7 @@ func main() {
 	// Load config
 	cfg, err := config.Load("config/config.yml")
 	if err != nil {
-		log.Printf("Failed to load config: %v, using defaults", err)
-		cfg = config.DefaultConfig()
+		log.Fatalf("Failed to load config: %v", err)
 	}
 
 	// Validate required environment variables
@@ -95,6 +97,11 @@ func main() {
 	sigChan := make(chan os.Signal, 1)
 	signal.Notify(sigChan, syscall.SIGINT, syscall.SIGTERM)
 
+	// Start HTTP server
+	srv := server.New(fmt.Sprintf(":%d", cfg.Server.Port))
+	srv.SetBotConnected(true) // Bot is connected
+	srv.SetAMLConnected(true) // AML is connected
+
 	// Start handling updates
 	go func() {
 		for update := range updates {
@@ -102,6 +109,7 @@ func main() {
 				continue
 			}
 
+			srv.IncrementBotRequests() // Track each message
 			if err := handler.HandleMessage(ctx, update.Message); err != nil {
 				logger.Error("Failed to handle message",
 					zap.Error(err),
@@ -114,8 +122,25 @@ func main() {
 
 	logger.Info("Bot started", zap.String("username", bot.Self.UserName))
 
-	// Wait for shutdown signal
-	<-sigChan
-	logger.Info("Shutting down...")
-	cancel()
+	// Start HTTP server
+	go func() {
+		if err := srv.Start(); err != nil {
+			log.Printf("HTTP server error: %v", err)
+		}
+	}()
+
+	// Wait for interrupt signal
+	quit := make(chan os.Signal, 1)
+	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
+	<-quit
+
+	// Graceful shutdown
+	ctx, cancel = context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	srv.SetBotConnected(false) // Mark bot as disconnected
+	srv.SetAMLConnected(false) // Mark AML as disconnected
+	if err := srv.Stop(ctx); err != nil {
+		log.Printf("Server forced to shutdown: %v", err)
+	}
 }
